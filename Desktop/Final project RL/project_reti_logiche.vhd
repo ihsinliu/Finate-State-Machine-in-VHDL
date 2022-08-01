@@ -20,7 +20,7 @@ entity project_reti_logiche is
     end project_reti_logiche;
 
 architecture Behavior of project_reti_logiche is
-    type state_type is (Ready,Request_num_words, Get_num_words, Request_data, Wait_data, Get_data, Set_mask, A, B, C, D, Write_output, Wait_writing, Done); -- A:00, B:01, C:10, D:11
+    type state_type is (Ready,Request_num_words, Get_num_words, Request_data, Wait_data, Set_mask, A, B, C, D, Write_output, Wait_writing, Done); -- A:00, B:01, C:10, D:11
     signal state_reg, next_state : state_type := Ready;
     signal FSA_state_reg, next_FSA_state : state_type := A;
     signal address_reg, next_address, next_o_address : std_logic_vector(15 downto 0) := "0000000000000000";
@@ -31,20 +31,17 @@ architecture Behavior of project_reti_logiche is
     signal in_mask_reg, next_in_mask : std_logic_vector(7 downto 0) := "00000000";
 	signal out_mask_reg, next_out_mask : std_logic_vector(15 downto 0) := "0000000000000000";
     signal num_words, next_num_words : Integer range 0 to 255 := 0;
-    signal got_data, next_got_data : BOOLEAN := false;
     signal FSA_input_digit, next_FSA_input_digit : Integer := 0;
     signal output_write_address, next_output_write_address :  std_logic_vector(15 downto 0) := std_logic_vector(to_unsigned(1000, 16));
 
 
     function get_digit (signal a : std_logic_vector(7 downto 0); index : Integer) return Integer is
-        variable res : Integer := -1;
     begin
         if a(index) = '0' then
-            res := 0;
+            return 0;
         else 
-            res := 1;
+            return 1;
         end if;
-        return res;
     end function;
     begin
 
@@ -54,15 +51,8 @@ architecture Behavior of project_reti_logiche is
             state_reg <= Ready;
             FSA_state_reg <= A;
             in_mask_reg <= "00000000";
-			out_mask_reg <= "0000000000000000";
 			address_reg <= "0000000000000000";
             output_reg <= "0000000000000000";
-            num_words <= 0;
-            got_data <= false;
-            data <= "00000000";
-            in_mask_reg <= "00000000";
-            out_mask_reg <= "0000000000000000";
-            FSA_input_digit <= 0;
             output_write_address <= std_logic_vector(to_unsigned(1000, 16));
         elsif (i_clk'event and i_clk='1') then
             state_reg <= next_state;
@@ -73,7 +63,6 @@ architecture Behavior of project_reti_logiche is
             o_data <= next_o_data;
             o_address <= next_o_address;
             output_reg <= next_output;
-            got_data <= next_got_data;
             address_reg <= next_address;
             data <= next_data;
             num_words <= next_num_words;
@@ -84,14 +73,13 @@ architecture Behavior of project_reti_logiche is
         end if;
     end process;
     
-    process (state_reg, FSA_state_reg, i_data, i_start, address_reg, output_reg, in_mask_reg, out_mask_reg, num_words, got_data, data, FSA_input_digit, output_write_address)
+    process (state_reg, FSA_state_reg, i_data, i_start, address_reg, output_reg, in_mask_reg, out_mask_reg, num_words, data, FSA_input_digit, output_write_address)
     begin
         next_o_done <= '0';
         next_o_en <= '0';
         next_o_we <= '0';
         next_o_data <= "00000000";
         next_o_address <= "0000000000000000";
-        next_got_data <= got_data;
         next_in_mask <= in_mask_reg;
         next_out_mask <= out_mask_reg;
         next_address <= address_reg;
@@ -124,31 +112,24 @@ architecture Behavior of project_reti_logiche is
                     next_o_done <= '1';
                     next_state <= Done;
                 else
-                    if (not got_data) then
-                        next_o_en <= '1';
-                        next_o_we <= '0';
-                        next_o_address <= address_reg + 1;
-                        next_address <= address_reg + 1;
-                        next_num_words <= num_words - 1;
-                        next_state <= Wait_data;
-                    else
-                        next_state <= Request_data;
-                    end if;
+                    next_o_en <= '1';
+                    next_o_we <= '0';
+                    next_o_address <= address_reg + 1;
+                    next_address <= address_reg + 1;
+                    next_num_words <= num_words - 1;
+                    next_state <= Wait_data;
                 end if;    
-            when Wait_data =>
-                next_state <= Get_data;
 
-            when Get_data =>
-                next_data <= i_data;
-                next_got_data <= true;
+            when Wait_data =>
                 next_state <= Set_mask;
 
             when Set_mask => 
                 next_state <= FSA_state_reg;
+                next_data <= i_data;
                 if (in_mask_reg = "00000000") then
                     next_in_mask <= "10000000";
                     next_out_mask <= "1100000000000000";
-                    next_FSA_input_digit <= get_digit(data, 7);
+                    next_FSA_input_digit <= get_digit(i_data, 7);
                 elsif (in_mask_reg = "10000000") then
                     next_in_mask <= "01000000";
                     next_out_mask <= "0011000000000000";
@@ -177,7 +158,7 @@ architecture Behavior of project_reti_logiche is
                     next_in_mask <= "00000001";
                     next_out_mask <= "0000000000000011";
                     next_FSA_input_digit <= get_digit(data, 0);
-                elsif (in_mask_reg = "00000001") then
+                else
                     next_state <= Write_output;
                 end if;
 
@@ -185,7 +166,7 @@ architecture Behavior of project_reti_logiche is
                 if (FSA_input_digit = 0) then
                     next_FSA_state <= A;
                     next_output <= ("0000000000000000" and out_mask_reg) or output_reg;
-                elsif (FSA_input_digit = 1) then
+                else 
                     next_FSA_state <= C;
                     next_output <= ("1111111111111111" and out_mask_reg) or output_reg;
                 end if;
@@ -195,7 +176,7 @@ architecture Behavior of project_reti_logiche is
                 if (FSA_input_digit = 0) then
                     next_FSA_state <= A;
                     next_output <= ("1111111111111111" and out_mask_reg) or output_reg;
-                elsif (FSA_input_digit = 1) then
+                else
                     next_FSA_state <= C;
                     next_output <= ("0000000000000000" and out_mask_reg) or output_reg;
                 end if;
@@ -205,7 +186,7 @@ architecture Behavior of project_reti_logiche is
                 if (FSA_input_digit = 0) then
                     next_FSA_state <= B;
                     next_output <= ("0101010101010101" and out_mask_reg) or output_reg;
-                elsif (FSA_input_digit = 1) then
+                else
                     next_FSA_state <= D;
                     next_output <= ("1010101010101010" and out_mask_reg) or output_reg;
                 end if;
@@ -215,7 +196,7 @@ architecture Behavior of project_reti_logiche is
                 if (FSA_input_digit = 0) then
                     next_FSA_state <= B;
                     next_output <= ("1010101010101010" and out_mask_reg) or output_reg;
-                elsif (FSA_input_digit = 1) then
+                else
                     next_FSA_state <= D;
                     next_output <= ("0101010101010101" and out_mask_reg) or output_reg;
                 end if;
@@ -235,30 +216,18 @@ architecture Behavior of project_reti_logiche is
                 next_o_data <= output_reg(7 downto 0); -- write 2nd part of the result
                 next_o_address <= output_write_address;
                 next_output_write_address <= output_write_address + 1;
-                if (num_words = 0) then
-                    next_state <= Done;
-                    next_o_done <= '1';
-                else
-                    next_got_data <= false;
-                    next_in_mask <= "00000000";
-                    next_out_mask <= "0000000000000000";
-                    next_output <= "0000000000000000";
-                    next_FSA_input_digit <= 0;
-                    next_state <= Request_data;
-                end if;
+                next_in_mask <= "00000000";
+                next_output <= "0000000000000000";
+                next_state <= Request_data;
 
             when Done =>
                 if (i_start = '0') then
                     next_state <= Ready;
                     next_o_done <= '0';
-                    next_got_data <= false;
                     next_address <= "0000000000000000";
                     next_in_mask <= "00000000";
-                    next_out_mask <= "0000000000000000";
                     next_output <= "0000000000000000";
-                    next_FSA_input_digit <= 0;
                     next_FSA_state <= A;
-                    next_data <= "00000000";
                     next_output_write_address <= std_logic_vector(to_unsigned(1000, 16));
                 else
                     next_state <= Done;
