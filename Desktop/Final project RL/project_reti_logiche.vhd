@@ -20,7 +20,7 @@ entity project_reti_logiche is
     end project_reti_logiche;
 
 architecture Behavior of project_reti_logiche is
-    type state_type is (Ready,Request_num_words, Get_num_words, Request_data, Wait_data, Set_mask, A, B, C, D, Write_output, Wait_writing, Done); -- A:00, B:01, C:10, D:11
+    type state_type is (Ready,Request_num_words, Get_num_words, Request_data, Wait_data, Pre_FSM, A, B, C, D, Write_output, Wait_writing, Done); -- A:00, B:01, C:10, D:11
     signal state_reg, next_state : state_type := Ready;
     signal FSA_state_reg, next_FSA_state : state_type := A;
     signal address_reg, next_address, next_o_address : std_logic_vector(15 downto 0) := "0000000000000000";
@@ -122,9 +122,9 @@ architecture Behavior of project_reti_logiche is
                 end if;    
 
             when Wait_data =>
-                next_state <= Set_mask;
+                next_state <= Pre_FSM;
 
-            when Set_mask => 
+            when Pre_FSM => 
                 next_state <= FSA_state_reg;
                 next_data <= i_data;
                 next_input_digit_index <= input_digit_index - 1;
@@ -166,7 +166,7 @@ architecture Behavior of project_reti_logiche is
                     next_FSA_state <= C;
                     next_output <= ("1111111111111111" and out_mask_reg) or output_reg;
                 end if;
-                next_state <= Set_mask;
+                next_state <= Pre_FSM;
 
             when B =>
                 if (FSA_input_digit = 0) then
@@ -176,7 +176,7 @@ architecture Behavior of project_reti_logiche is
                     next_FSA_state <= C;
                     next_output <= ("0000000000000000" and out_mask_reg) or output_reg;
                 end if;
-                next_state <= Set_mask;
+                next_state <= Pre_FSM;
 
             when C =>
                 if (FSA_input_digit = 0) then
@@ -186,7 +186,7 @@ architecture Behavior of project_reti_logiche is
                     next_FSA_state <= D;
                     next_output <= ("1010101010101010" and out_mask_reg) or output_reg;
                 end if;
-                next_state <= Set_mask;
+                next_state <= Pre_FSM;
 
             when D =>
                 if (FSA_input_digit = 0) then
@@ -196,7 +196,7 @@ architecture Behavior of project_reti_logiche is
                     next_FSA_state <= D;
                     next_output <= ("0101010101010101" and out_mask_reg) or output_reg;
                 end if;
-                next_state <= Set_mask;
+                next_state <= Pre_FSM;
 
             when Write_output =>
                 next_o_en <= '1';
