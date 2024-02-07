@@ -7,9 +7,9 @@ the 2-byte result on the memory. For example, let’s say the input is 10100010,
 be 11010001 11001101. If there is any other input data, it continues to read and process them as
 described above.
 
-```
+
 ![Figure 1: The finite state machine used to process inputs](./pictures/figure1.png)
-```
+
 ## 2 Architecture
 
 ## 2.1 Interface of component
@@ -30,9 +30,7 @@ Figure 2 shows how components interact with each other, in particular:
 - odata is the data to be written into memory.
 
 
-```
 ![Figure 2: The interface between the memory and the implemented project.](./pictures/figure2.png)
-```
 ### 2.2 Implementation
 
 When istart is set to 1, the machine starts elaboration fromReadystate. Once the elaboration
@@ -63,9 +61,8 @@ toReadystate. Furthermore, the irst signal will reset the machine to its default
 - Done: This is the final state of the machine.
 
 
-```
 ![Figure 3: Simplified scheme of the machine](./pictures/figure3.png)
-```
+
 2.2.2 Processes
 
 The implemented project has two processes.
@@ -82,9 +79,7 @@ The implemented project has two processes.
 According to the synthesis report provided by Vivado, the design used 99 LUTs and 110 registers as
 flip flops, and 0 latches.
 
-```
 ![Figure 4: Asynchronous reset](./pictures/figure4.png)
-```
 ### 3.2 Test results
 
 To verify the correct behavior of the project, a test suite has been provided. The following behaviors
@@ -105,6 +100,4 @@ have been tested in pre-synthesis and post-synthesis:
     the machine wrote the correct results into memory. Furthermore, the design timing summary is
     provided below.
 
-```
 ![Figure 5: Design timing summary](./pictures/figure5.png)
-```
